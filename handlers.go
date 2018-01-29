@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 )
@@ -32,20 +31,6 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 		return "", errors.New("Invalid Page Title")
 	}
 	return m[2], nil // the title is the second subexpression
-}
-
-func (p *Page) save() error {
-	filename := "pages/" + p.Title + ".txt"
-	return ioutil.WriteFile(filename, p.Body, 0600)
-}
-
-func loadPage(title string) (*Page, error) {
-	filename := "pages/" + title + ".txt"
-	body, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return &Page{Title: title, Body: body}, nil
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
