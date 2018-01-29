@@ -7,11 +7,6 @@ import (
 	"regexp"
 )
 
-type Page struct {
-	Title string
-	Body  []byte
-}
-
 var templates = template.Must(template.ParseFiles("template/edit.html", "template/view.html"))
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
