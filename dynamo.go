@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,48 +10,76 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-type BlogPost struct {
-	PostTitle string `json:"PostTitle"`
-	PageTitle string `json:"PageTitle"`
-	Date      string `json:"Date"`
-	Body      []struct {
-		Heading     string   `json:"Heading"`
-		HeadingText []string `json:"HeadingText"`
-	} `json:"Body"`
-	ID string `json:"ID"`
+type WikiPage struct {
+	Title string
+	Post  string
 }
 
-func get_post(post_id string) (post BlogPost) {
+func dynamodb_svc() (*dynamodb.DynamoDB) {
 	aws_session, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1")},
-	)
+		Region: aws.String("us-east-1"),
+	})
 	if err != nil {
-		fmt.Println("holy crap the aws session failed")
+		fmt.Printf("ERROR: aws err: %v", err)
+		os.Exit(1)
 	}
 	svc := dynamodb.New(aws_session)
+	return svc
+}
 
+func get_page (title string) (WikiPage, error) {
+	svc := dynamodb_svc()
+	
 	result, err := svc.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String("BlogPosts"),
+		TableName: aws.String("WikiPages"),
 		Key: map[string]*dynamodb.AttributeValue{
-			"ID": {
-				S: aws.String(post_id),
-			},
-		},
-	})
+			"Title": {S: aws.String(title),
+			}}})
+
+	page := WikiPage{
+		Title: title,
+	}
 
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Printf("WARN could not find entry: %v\n", err)
+		return page, err
 	}
 
-	blog_post := BlogPost{}
-	err = dynamodbattribute.UnmarshalMap(result.Item, &blog_post)
+	err = dynamodbattribute.UnmarshalMap(result.Item, &page)
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: failed to unmarshal record: %v\n", err))
+	}
+
+	if page.Title == "" {
+		fmt.Printf("WARN: could not find wiki page: %v\n", title)
+		return page, err
+	}
+
+	return page, err
+}
+
+func put_page (title string, post string) (error) {
+	svc := dynamodb_svc()
+
+	page := WikiPage{
+		Title: title,
+		Post:  post,
+	}
+	wpage, err := dynamodbattribute.MarshalMap(page)
 
 	if err != nil {
-		panic(fmt.Sprintf("Failed to unmarshal record, %v", err))
+		fmt.Printf("WARN could not post wiki page: %v\n", title)
+		return err
 	}
-
-	if post.ID == "" {
-		fmt.Printf("Could not find: blogpost: %v", post_id)
+	
+	input := &dynamodb.PutItemInput{
+		Item:      wpage,
+		TableName: aws.String("WikiPages"),
 	}
-	return blog_post
+	_, err = svc.PutItem(input)
+	if err != nil {
+		fmt.Printf("Got error calling PutItem: %v\n", err)
+		return err
+	}
+	return err
 }
