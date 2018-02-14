@@ -30,7 +30,7 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 
 func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	// page, err := loadPage(title)
-	page, err := get_page(title)
+	page, err := get_page("Title", title)
 	if err != nil || page.Post == "" {
 		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
 		return
@@ -40,7 +40,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 func editHandler(w http.ResponseWriter, r *http.Request, title string) {
 	// page, err := loadPage(title)
-	page, err := get_page(title)
+	page, err := get_page("Title", title)
 	if err != nil {
 		page = WikiPage{
 			Title: title,

@@ -27,13 +27,13 @@ func dynamodb_svc() (*dynamodb.DynamoDB) {
 	return svc
 }
 
-func get_page (title string) (WikiPage, error) {
+func get_page (id string, title string) (WikiPage, error) {
 	svc := dynamodb_svc()
 	
 	result, err := svc.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String("WikiPages"),
 		Key: map[string]*dynamodb.AttributeValue{
-			"Title": {S: aws.String(title),
+			id: {S: aws.String(title),
 			}}})
 
 	page := WikiPage{
